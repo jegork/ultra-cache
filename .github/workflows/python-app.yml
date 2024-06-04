@@ -10,10 +10,10 @@ on:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build:
+  check:
 
     runs-on: ubuntu-latest
 
@@ -36,3 +36,41 @@ jobs:
     - name: Test with pytest
       run: |
         poetry run pytest
+
+  build:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - uses: actions/setup-python@v5
+      name: Set up Python 3.12
+      with:
+        python-version: '3.12'
+        cache: 'poetry'
+    - name: Install dependencies
+      run: |
+        poetry install
+    - name: Get version from pyproject.toml
+      id: get_version
+      run: |
+        VERSION=$(poetry version -s)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
+          echo "tag_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "tag_exists=false" >> $GITHUB_OUTPUT
+        fi
+    - name: Create tag and release
+      if: steps.check_tag.outputs.tag_exists == 'false'
+      run: |
+        git tag "v${{ env.VERSION }}"
+        git push origin "v${{ env.VERSION }}"
+        gh release create "v${{ env.VERSION }}" --title "v${{ env.VERSION }}" --notes "Release version ${{ env.VERSION }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
