@@ -1,4 +1,4 @@
-from fast_cache.build_cache_key import DefaultBuildCacheKey
+from ultra_cache.build_cache_key import DefaultBuildCacheKey
 from pydantic import BaseModel
 
 

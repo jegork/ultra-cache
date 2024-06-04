@@ -1,6 +1,6 @@
-from fast_cache.build_cache_key import DefaultBuildCacheKey
-from fast_cache.decorator import cache
-from fast_cache.storage.inmemory import InMemoryStorage
+from ultra_cache.build_cache_key import DefaultBuildCacheKey
+from ultra_cache.decorator import cache
+from ultra_cache.storage.inmemory import InMemoryStorage
 import pytest
 from fastapi import Request, Response
 from pytest_mock.plugin import MockerFixture

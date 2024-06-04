@@ -1,4 +1,4 @@
-from fast_cache.storage.base import BaseStorage
+from ultra_cache.storage.base import BaseStorage
 from datetime import datetime, timedelta, UTC
 
 

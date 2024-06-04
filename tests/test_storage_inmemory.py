@@ -1,4 +1,4 @@
-from fast_cache.storage.inmemory import InMemoryStorage
+from ultra_cache.storage.inmemory import InMemoryStorage
 import pytest
 from datetime import UTC, datetime, timedelta
 from freezegun import freeze_time

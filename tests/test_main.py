@@ -1,5 +1,5 @@
-from fast_cache.fastcache import get_storage, init_cache
-from fast_cache.storage.inmemory import InMemoryStorage
+from ultra_cache.main import get_storage, init_cache
+from ultra_cache.storage.inmemory import InMemoryStorage
 import pytest
 
 

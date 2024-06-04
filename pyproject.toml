@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fast_cache"
+name = "ultra-cache"
 version = "0.1.0"
 description = "Simple and extensible caching for FastAPI requests"
 authors = ["Jegor Kitskerkin <jegor.kitskerkin@gmail.com>"]

@@ -1,5 +1,5 @@
 from contextlib import AbstractAsyncContextManager
-from fast_cache.storage.base import BaseStorage
+from ultra_cache.storage.base import BaseStorage
 
 _storage_instance: BaseStorage | None = None
 
