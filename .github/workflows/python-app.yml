@@ -63,8 +63,10 @@ jobs:
       run: |
         if git rev-parse "v${{ env.VERSION }}" >/dev/null 2>&1; then
           echo "tag_exists=true" >> $GITHUB_OUTPUT
+          echo "Version ${{ env.VERSION }} already exists."
         else
           echo "tag_exists=false" >> $GITHUB_OUTPUT
+          echo "Version ${{ env.VERSION }} does not exists."
         fi
     - name: Create tag and release
       if: steps.check_tag.outputs.tag_exists == 'false'
