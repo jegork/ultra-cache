@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "fast_cache"
+version = "0.1.0"
+description = "Simple and extensible caching for FastAPI requests"
+authors = ["Jegor Kitskerkin <jegor.kitskerkin@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111.0"
+pydantic = "^2.7.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+ruff = "^0.4.2"
+pyright = "^1.1.361"
+freezegun = "^1.5.0"
+pytest-mock = "^3.14.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
