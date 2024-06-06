@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import TypeVar
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 
-class BaseStorage[K, V](ABC):
+class BaseStorage(ABC):
     @abstractmethod
     async def save(self, key: K, value: V, ttl: int | float | None = None) -> None: ...
 

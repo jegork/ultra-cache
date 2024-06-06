@@ -1,8 +1,13 @@
 from ultra_cache.storage.base import BaseStorage
 from datetime import datetime, timedelta, UTC
+from typing import TypeVar
+
+K = TypeVar("K")
+V = TypeVar("V")
+T = TypeVar("T")
 
 
-class InMemoryStorageItem[T]:
+class InMemoryStorageItem:
     def __init__(self, data: T, ttl: float | None) -> None:
         self._data = data
         self._ttl = ttl
@@ -26,7 +31,7 @@ class InMemoryStorageItem[T]:
         return self._data
 
 
-class InMemoryStorage[K, V](BaseStorage):
+class InMemoryStorage(BaseStorage):
     def __init__(self) -> None:
         self.storage: dict[K, InMemoryStorageItem[V]] = {}
 
