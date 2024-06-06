@@ -1,6 +1,6 @@
 import asyncio
-from functools import partial
-from typing import Any, Callable
+from functools import partial, wraps
+from typing import Any, Callable, ParamSpec, Union, TypeVar
 from collections.abc import Coroutine
 import inspect
 
@@ -11,6 +11,9 @@ from ultra_cache.build_cache_key import BuildCacheKey, DefaultBuildCacheKey
 from ultra_cache.main import get_storage
 from ultra_cache.storage.base import BaseStorage
 from fastapi import Request, Response
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 def _extract_special_param(_fn, param_type: type) -> None | inspect.Parameter:
@@ -50,9 +53,11 @@ def cache(
     build_cache_key: BuildCacheKey = DefaultBuildCacheKey(),
     storage: BaseStorage | None = None,
 ):
-    def _wrapper[**P, R](
-        func: Callable[P, R | Coroutine[R, Any, Any]],
+    def _wrapper(
+        func: Callable[P, Union[R, Coroutine[R, Any, Any]]],
     ) -> Callable[P, Coroutine[R, Any, Any]]:
+        # allows for the decorator to be used with fastapi params interospection
+        @wraps(func)
         async def _decorator(*args: P.args, **kwargs: P.kwargs):
             nonlocal storage
 
