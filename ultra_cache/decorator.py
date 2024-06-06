@@ -64,6 +64,26 @@ def cache(
             request_param = _extract_special_param(func, Request)
             response_param = _extract_special_param(func, Response)
 
+            response: Response | None = None
+            request: Request | None = None
+
+            if request_param is not None:
+                request = kwargs.get(request_param.name)
+
+            if response_param is not None:
+                response = kwargs.get(response_param.name)
+
+            cache_control = None
+            if request is not None:
+                cache_control = request.headers.get("Cache-Control", None)
+
+            no_cache = False
+            no_store = False
+
+            if cache_control:
+                no_cache = "no-cache" in cache_control.lower()
+                no_store = "no-store" in cache_control.lower()
+
             args_for_key, kwargs_for_key = _extract(
                 response_param, *(_extract(request_param, args, kwargs))
             )
@@ -72,10 +92,17 @@ def cache(
             if storage is None:
                 storage = get_storage()
 
-            cached = await storage.get(key)
+            cached = None
+            if not no_cache:
+                cached = await storage.get(key)
 
             if cached is not None:
+                if response:
+                    response.headers["X-Cache"] = "HIT"
                 return cached
+
+            elif response:
+                response.headers["X-Cache"] = "MISS"
 
             # Note: inspect.iscoroutinefunction returns False for AsyncMock
             if asyncio.iscoroutinefunction(func):
@@ -83,7 +110,8 @@ def cache(
             else:
                 output = await anyio.to_thread.run_sync(partial(func, *args, **kwargs))
 
-            await storage.save(key=key, value=output, ttl=ttl)
+            if not no_store:
+                await storage.save(key=key, value=output, ttl=ttl)
 
             return output
 

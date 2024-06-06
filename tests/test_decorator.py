@@ -61,7 +61,7 @@ def key_builder():
 
 
 sample_args = (1, 2)
-sample_request = Request({"type": "http"})
+sample_request = Request({"type": "http", "headers": {}})
 sample_response = Response()
 
 
