@@ -45,3 +45,6 @@ class InMemoryStorage(BaseStorage):
             return None
 
         return item.value
+
+    async def clear(self) -> None:
+        self.storage = {}

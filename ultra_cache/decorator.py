@@ -56,6 +56,14 @@ def _extract(
         return (args_copy, kwargs)
 
 
+def _does_etag_match(etag: str, if_none_match: str | None) -> bool:
+    if if_none_match is not None and (
+        if_none_match == "*" or any(etag == x.strip() for x in if_none_match.split(","))
+    ):
+        return True
+    return False
+
+
 def cache(
     ttl: int | float | None = None,
     build_cache_key: BuildCacheKey = DefaultBuildCacheKey(),
@@ -94,9 +102,9 @@ def cache(
             response: Response = kwargs.get(response_param.name)
 
             cache_control = CacheControl.from_string(
-                request.headers.get("Cache-Control", None)
+                request.headers.get("cache-control", None)
             )
-            if_none_match = request.headers.get("If-None-Match", "").split(",")
+            if_none_match = request.headers.get("if-none-match", None)
 
             args_for_key, kwargs_for_key = _extract(
                 response_param, *(_extract(request_param, args, kwargs))
@@ -110,13 +118,20 @@ def cache(
             if not cache_control.no_cache:
                 cached = await storage.get(key)
 
-            cache_control.setdefault("max-age", ttl)
+            if ttl:
+                cache_control.setdefault("max-age", ttl)
 
             response.headers["Cache-Control"] = cache_control.to_response_header()
 
             if cached is not None:
                 response.headers["X-Cache"] = "HIT"
                 response.headers["ETag"] = hash_fn(cached)
+
+                if request.method in ["HEAD", "GET"]:
+                    if _does_etag_match(response.headers["ETag"], if_none_match):
+                        response.status_code = 304
+                        return
+
                 return cached
             else:
                 response.headers["X-Cache"] = "MISS"
@@ -133,11 +148,8 @@ def cache(
                 output = await anyio.to_thread.run_sync(partial(func, *args, **kwargs))
 
             response.headers["ETag"] = hash_fn(output)
-
-            if if_none_match == ["*"] or any(
-                response.headers["ETag"] == x.strip() for x in if_none_match
-            ):
-                if request.method in ["HEAD", "GET"]:
+            if request.method in ["HEAD", "GET"]:
+                if _does_etag_match(response.headers["ETag"], if_none_match):
                     response.status_code = 304
                     return
 

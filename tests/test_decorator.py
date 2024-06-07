@@ -57,7 +57,7 @@ sample_args = (1, 2)
 
 
 def sample_request():
-    return Request({"type": "http", "headers": {}})
+    return Request({"type": "http", "headers": {}, "method": "GET"})
 
 
 def sample_response():

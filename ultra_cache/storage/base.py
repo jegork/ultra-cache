@@ -11,3 +11,6 @@ class BaseStorage(ABC):
 
     @abstractmethod
     async def get(self, key: K) -> V | None: ...
+
+    @abstractmethod
+    async def clear(self) -> None: ...

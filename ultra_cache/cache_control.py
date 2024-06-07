@@ -29,7 +29,10 @@ class CacheControl:
 
     @property
     def max_age(self) -> int | None:
-        return self.parts.get("max-age", None)
+        value = self.parts.get("max-age", None)
+        if value is None:
+            return None
+        return int(value)
 
     @property
     def no_cache(self) -> bool:
