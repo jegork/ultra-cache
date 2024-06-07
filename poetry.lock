@@ -68,6 +68,38 @@ files = [
 ]
 
 [[package]]
+name = "deflate-dict"
+version = "1.0.11"
+description = "Python package to deflate and re-inflate dictionaries."
+optional = false
+python-versions = "*"
+files = [
+    {file = "deflate_dict-1.0.11.tar.gz", hash = "sha256:07f0c57960070e8460d84271f03291f7dcf56a12dd68c9831a270cf76aa6f42a"},
+]
+
+[package.dependencies]
+support_developer = ">=1.0.2"
+
+[package.extras]
+test = ["codacy-coverage", "coveralls", "pytest", "pytest-cov", "random_dict", "validate_version_code"]
+
+[[package]]
+name = "dict-hash"
+version = "1.1.37"
+description = "Python package to hash dictionaries using both default hash and sha256."
+optional = false
+python-versions = "*"
+files = [
+    {file = "dict_hash-1.1.37.tar.gz", hash = "sha256:40a5dfef0c0291abeead3990ee33ecbc662550f7335074d91316cc0a6e67b1d5"},
+]
+
+[package.dependencies]
+deflate_dict = ">=1.0.8"
+
+[package.extras]
+test = ["hvplot (>=0.9.1)", "netaddr", "numba", "polars", "pytest", "pytest-cov", "random_dict", "tqdm", "validate_version_code"]
+
+[[package]]
 name = "dnspython"
 version = "2.6.1"
 description = "DNS toolkit"
@@ -893,6 +925,19 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.7)", "pyyaml"]
 
 [[package]]
+name = "support-developer"
+version = "1.0.5"
+description = "Package designed to centralize messages to support developers development work."
+optional = false
+python-versions = "*"
+files = [
+    {file = "support_developer-1.0.5.tar.gz", hash = "sha256:7739f63766b90480ee71d56c70ed8953500c48ab19e2782f867786642fce03d9"},
+]
+
+[package.extras]
+test = ["codacy-coverage", "coveralls", "pytest", "pytest-cov", "validate_version_code"]
+
+[[package]]
 name = "typer"
 version = "0.12.3"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
@@ -1234,4 +1279,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "f7cffba1160cdc14ec038309c4d035302257cbb1058edd83503424100440c67e"
+content-hash = "ceb62ce7559db5b51619896167492e6c10049032ad52d785084d1dfa6a37a7e7"
