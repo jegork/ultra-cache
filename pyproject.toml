@@ -1,6 +1,10 @@
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
 [tool.poetry]
 name = "ultra-cache"
-version = "0.1.1"
+version = "0.0.0"
 description = "Simple and extensible caching for FastAPI requests"
 authors = ["Jegor Kitskerkin <jegor.kitskerkin@gmail.com>"]
 license = "MIT"
@@ -20,6 +24,6 @@ freezegun = "^1.5.0"
 pytest-mock = "^3.14.0"
 httpx = "^0.27.0"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
