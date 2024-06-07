@@ -15,16 +15,20 @@ from fastapi import Request, Response
 P = ParamSpec("P")
 R = TypeVar("R")
 
+S1 = TypeVar("S1")
+S2 = TypeVar("S2")
 
-def _extract_special_param(_fn, param_type: type) -> None | inspect.Parameter:
-    sig = inspect.signature(_fn)
+
+def _extract_param_of_type(
+    sig: inspect.Signature, param_type: type
+) -> None | inspect.Parameter:
     for _, param in sig.parameters.items():
         if param.annotation == param_type:
             return param
     return None
 
 
-def _extract[S1, S2](
+def _extract(
     param: inspect.Parameter | None, args: tuple[S1, ...], kwargs: dict[str, S2]
 ) -> tuple[tuple[S1, ...], dict[str, S2]]:
     if param is None:
@@ -39,13 +43,9 @@ def _extract[S1, S2](
             (i for i, p in enumerate(args) if isinstance(p, param.annotation)), -1
         )
         if request_index == -1:
-            raise ValueError(f"No argument of type {param.annotation} found in args")
+            return args, kwargs
         args_copy = args[:request_index] + args[request_index + 1 :]
         return (args_copy, kwargs)
-
-
-def _merge_args[T](value: T, index: int, *tup: T) -> tuple[T, ...]:
-    return tup[:index] + (value,) + tup[index:]
 
 
 def cache(
@@ -56,26 +56,35 @@ def cache(
     def _wrapper(
         func: Callable[P, Union[R, Coroutine[R, Any, Any]]],
     ) -> Callable[P, Coroutine[R, Any, Any]]:
+        sig = inspect.signature(func)
+
+        original_request_param = _extract_param_of_type(sig, Request)
+        original_response_param = _extract_param_of_type(sig, Response)
+        request_param = original_request_param
+        response_param = original_response_param
+
+        new_parameters = list(sig.parameters.values())
+        if request_param is None:
+            request_param = inspect.Parameter(
+                "request", annotation=Request, kind=inspect.Parameter.KEYWORD_ONLY
+            )
+            new_parameters.append(request_param)
+        if response_param is None:
+            response_param = inspect.Parameter(
+                "response", annotation=Response, kind=inspect.Parameter.KEYWORD_ONLY
+            )
+            new_parameters.append(response_param)
+
+        func.__signature__ = sig.replace(parameters=new_parameters)
+
         # allows for the decorator to be used with fastapi params interospection
         @wraps(func)
         async def _decorator(*args: P.args, **kwargs: P.kwargs):
             nonlocal storage
+            request: Request = kwargs.get(request_param.name)
+            response: Response = kwargs.get(response_param.name)
 
-            request_param = _extract_special_param(func, Request)
-            response_param = _extract_special_param(func, Response)
-
-            response: Response | None = None
-            request: Request | None = None
-
-            if request_param is not None:
-                request = kwargs.get(request_param.name)
-
-            if response_param is not None:
-                response = kwargs.get(response_param.name)
-
-            cache_control = None
-            if request is not None:
-                cache_control = request.headers.get("Cache-Control", None)
+            cache_control = request.headers.get("Cache-Control", None)
 
             no_cache = False
             no_store = False
@@ -97,12 +106,15 @@ def cache(
                 cached = await storage.get(key)
 
             if cached is not None:
-                if response:
-                    response.headers["X-Cache"] = "HIT"
+                response.headers["X-Cache"] = "HIT"
                 return cached
 
-            elif response:
-                response.headers["X-Cache"] = "MISS"
+            response.headers["X-Cache"] = "MISS"
+
+            if original_request_param is None:
+                kwargs.pop("request")
+            if original_response_param is None:
+                kwargs.pop("response")
 
             # Note: inspect.iscoroutinefunction returns False for AsyncMock
             if asyncio.iscoroutinefunction(func):

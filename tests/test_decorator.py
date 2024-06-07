@@ -9,10 +9,11 @@ from pytest_mock.plugin import MockerFixture
 class FnWithArgs:
     "Utility class for testing and mocking"
 
-    def __init__(self, fn, args, kwargs) -> None:
+    def __init__(self, fn, args, kwargs, injected_kwargs) -> None:
         self.fn = fn
         self.args = args
         self.kwargs = kwargs
+        self.injected_kwargs = injected_kwargs
 
     def __str__(self) -> str:
         return f"{self.fn}(*{self.args}, **{self.kwargs})"
@@ -26,27 +27,19 @@ async def _fn_async(p1, p2):
     return p1 == p2
 
 
-def _fn_sync_request_1(r: Request, p1, p2):
+def _fn_sync_request_1(p1, p2, request: Request):
     return p1 == p2
 
 
-def _fn_sync_request_2(p1, p2, request: Request):
+def _fn_sync_request_2(p1, p2, r: Request):
     return p1 == p2
 
 
-def _fn_sync_request_3(p1, p2, r: Request):
+def _fn_sync_response_1(p1, p2, response: Response):
     return p1 == p2
 
 
-def _fn_sync_response_1(r: Response, p1, p2):
-    return p1 == p2
-
-
-def _fn_sync_response_2(p1, p2, response: Response):
-    return p1 == p2
-
-
-def _fn_sync_response_3(p1, p2, r: Response):
+def _fn_sync_response_2(p1, p2, r: Response):
     return p1 == p2
 
 
@@ -61,20 +54,56 @@ def key_builder():
 
 
 sample_args = (1, 2)
-sample_request = Request({"type": "http", "headers": {}})
-sample_response = Response()
+
+
+def sample_request():
+    return Request({"type": "http", "headers": {}})
+
+
+def sample_response():
+    return Response()
 
 
 @pytest.fixture(
     params=[
-        FnWithArgs(_fn_sync, sample_args, {}),
-        FnWithArgs(_fn_async, sample_args, {}),
-        FnWithArgs(_fn_sync_request_1, (sample_request, *sample_args), {}),
-        FnWithArgs(_fn_sync_request_2, sample_args, {"request": sample_request}),
-        FnWithArgs(_fn_sync_request_3, sample_args, {"r": sample_request}),
-        FnWithArgs(_fn_sync_response_1, (sample_response, *sample_args), {}),
-        FnWithArgs(_fn_sync_response_2, sample_args, {"response": sample_response}),
-        FnWithArgs(_fn_sync_response_3, sample_args, {"r": sample_response}),
+        FnWithArgs(
+            _fn_sync,
+            sample_args,
+            {},
+            {"request": sample_request(), "response": sample_response()},
+        ),
+        FnWithArgs(
+            _fn_async,
+            sample_args,
+            {},
+            {"request": sample_request(), "response": sample_response()},
+        ),
+        FnWithArgs(
+            _fn_sync_request_1,
+            sample_args,
+            {
+                "request": sample_request(),
+            },
+            {"response": sample_response()},
+        ),
+        FnWithArgs(
+            _fn_sync_request_2,
+            sample_args,
+            {"r": sample_request()},
+            {"response": sample_response()},
+        ),
+        FnWithArgs(
+            _fn_sync_response_1,
+            sample_args,
+            {"response": sample_response()},
+            {"request": sample_request()},
+        ),
+        FnWithArgs(
+            _fn_sync_response_2,
+            sample_args,
+            {"r": sample_response()},
+            {"request": sample_request()},
+        ),
     ]
 )
 def fn_with_args(request):
@@ -98,13 +127,19 @@ async def test_decorator_cached(
     )  # Weird syntax, but did not find any alternative
 
     cached_fn = cache(storage=storage)(fn_with_args.fn)
-    result = await cached_fn(*fn_with_args.args, **fn_with_args.kwargs)
+    result = await cached_fn(
+        *fn_with_args.args, **{**fn_with_args.kwargs, **fn_with_args.injected_kwargs}
+    )
+
+    # call second time
+    await cached_fn(
+        *fn_with_args.args, **{**fn_with_args.kwargs, **fn_with_args.injected_kwargs}
+    )
+
+    assert spy_on_get.call_count == 2
 
     # Note: no request and response in args/kwargs
     key = key_builder(fn_with_args.fn, sample_args, kwargs={})
-    await cached_fn(*fn_with_args.args, **fn_with_args.kwargs)
-
-    assert spy_on_get.call_count == 2
 
     spy_on_save.assert_called_once_with(key=key, value=(False), ttl=None)
     spy_on_fn.assert_called_once_with(*fn_with_args.args, **fn_with_args.kwargs)
