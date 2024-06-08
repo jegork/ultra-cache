@@ -9,7 +9,6 @@ import anyio.to_thread
 from dict_hash import dict_hash
 from ultra_cache.build_cache_key import BuildCacheKey, DefaultBuildCacheKey
 from ultra_cache.cache_control import CacheControl
-from ultra_cache.main import get_storage
 from ultra_cache.storage.base import BaseStorage
 from fastapi import Request, Response
 import sys
@@ -70,102 +69,111 @@ def _does_etag_match(etag: str, if_none_match: Union[str, None]) -> bool:
     return False
 
 
-def cache(
-    ttl: Union[int, float, None] = None,
-    build_cache_key: BuildCacheKey = DefaultBuildCacheKey(),
-    storage: Union[BaseStorage, None] = None,
-    hash_fn: Callable[[Any], str] = _default_hash_fn,
-):
-    def _wrapper(
-        func: Callable[P, Union[R, Coroutine[R, Any, Any]]],
-    ) -> Callable[P, Coroutine[R, Any, Any]]:
-        sig = inspect.signature(func)
+class UltraCache:
+    storage: Union[BaseStorage, None] = None
 
-        original_request_param = _extract_param_of_type(sig, Request)
-        original_response_param = _extract_param_of_type(sig, Response)
-        request_param = original_request_param
-        response_param = original_response_param
+    def __init__(self, storage: BaseStorage) -> None:
+        self.storage = storage
 
-        new_parameters = list(sig.parameters.values())
-        if request_param is None:
-            request_param = inspect.Parameter(
-                "request", annotation=Request, kind=inspect.Parameter.KEYWORD_ONLY
-            )
-            new_parameters.append(request_param)
-        if response_param is None:
-            response_param = inspect.Parameter(
-                "response", annotation=Response, kind=inspect.Parameter.KEYWORD_ONLY
-            )
-            new_parameters.append(response_param)
+    def __call__(
+        self,
+        ttl: Union[int, float, None] = None,
+        build_cache_key: BuildCacheKey = DefaultBuildCacheKey(),
+        storage: Union[BaseStorage, None] = None,
+        hash_fn: Callable[[Any], str] = _default_hash_fn,
+    ):
+        def _wrapper(
+            func: Callable[P, Union[R, Coroutine[R, Any, Any]]],
+        ) -> Callable[P, Coroutine[R, Any, Any]]:
+            sig = inspect.signature(func)
 
-        func.__signature__ = sig.replace(parameters=new_parameters)
+            original_request_param = _extract_param_of_type(sig, Request)
+            original_response_param = _extract_param_of_type(sig, Response)
+            request_param = original_request_param
+            response_param = original_response_param
 
-        # allows for the decorator to be used with fastapi params interospection
-        @wraps(func)
-        async def _decorator(*args: P.args, **kwargs: P.kwargs):
-            nonlocal storage
-            request: Request = kwargs.get(request_param.name)
-            response: Response = kwargs.get(response_param.name)
+            new_parameters = list(sig.parameters.values())
+            if request_param is None:
+                request_param = inspect.Parameter(
+                    "request", annotation=Request, kind=inspect.Parameter.KEYWORD_ONLY
+                )
+                new_parameters.append(request_param)
+            if response_param is None:
+                response_param = inspect.Parameter(
+                    "response", annotation=Response, kind=inspect.Parameter.KEYWORD_ONLY
+                )
+                new_parameters.append(response_param)
 
-            cache_control = CacheControl.from_string(
-                request.headers.get("cache-control", None)
-            )
-            if_none_match = request.headers.get("if-none-match", None)
+            func.__signature__ = sig.replace(parameters=new_parameters)
 
-            args_for_key, kwargs_for_key = _extract(
-                response_param, *(_extract(request_param, args, kwargs))
-            )
-            key = build_cache_key(func, args=args_for_key, kwargs=kwargs_for_key)
+            # allows for the decorator to be used with fastapi params interospection
+            @wraps(func)
+            async def _decorator(*args: P.args, **kwargs: P.kwargs):
+                nonlocal storage
+                request: Request = kwargs.get(request_param.name)
+                response: Response = kwargs.get(response_param.name)
 
-            if storage is None:
-                storage = get_storage()
+                cache_control = CacheControl.from_string(
+                    request.headers.get("cache-control", None)
+                )
+                if_none_match = request.headers.get("if-none-match", None)
 
-            cached = None
-            if not cache_control.no_cache:
-                cached = await storage.get(key)
+                args_for_key, kwargs_for_key = _extract(
+                    response_param, *(_extract(request_param, args, kwargs))
+                )
+                key = build_cache_key(func, args=args_for_key, kwargs=kwargs_for_key)
 
-            if ttl:
-                cache_control.setdefault("max-age", ttl)
+                if storage is None:
+                    storage = self.storage
 
-            response.headers["Cache-Control"] = cache_control.to_response_header()
+                cached = None
+                if not cache_control.no_cache:
+                    cached = await storage.get(key)
 
-            if cached is not None:
-                response.headers["X-Cache"] = "HIT"
-                response.headers["ETag"] = hash_fn(cached)
+                if ttl:
+                    cache_control.setdefault("max-age", ttl)
 
+                response.headers["Cache-Control"] = cache_control.to_response_header()
+
+                if cached is not None:
+                    response.headers["X-Cache"] = "HIT"
+                    response.headers["ETag"] = hash_fn(cached)
+
+                    if request.method in ["HEAD", "GET"]:
+                        if _does_etag_match(response.headers["ETag"], if_none_match):
+                            response.status_code = 304
+                            return
+
+                    return cached
+                else:
+                    response.headers["X-Cache"] = "MISS"
+
+                if original_request_param is None:
+                    kwargs.pop("request")
+                if original_response_param is None:
+                    kwargs.pop("response")
+
+                # Note: inspect.iscoroutinefunction returns False for AsyncMock
+                if asyncio.iscoroutinefunction(func):
+                    output = await func(*args, **kwargs)
+                else:
+                    output = await anyio.to_thread.run_sync(
+                        partial(func, *args, **kwargs)
+                    )
+
+                response.headers["ETag"] = hash_fn(output)
                 if request.method in ["HEAD", "GET"]:
                     if _does_etag_match(response.headers["ETag"], if_none_match):
                         response.status_code = 304
                         return
 
-                return cached
-            else:
-                response.headers["X-Cache"] = "MISS"
+                if not cache_control.no_store:
+                    await storage.save(
+                        key=key, value=output, ttl=cache_control.max_age or ttl
+                    )
 
-            if original_request_param is None:
-                kwargs.pop("request")
-            if original_response_param is None:
-                kwargs.pop("response")
+                return output
 
-            # Note: inspect.iscoroutinefunction returns False for AsyncMock
-            if asyncio.iscoroutinefunction(func):
-                output = await func(*args, **kwargs)
-            else:
-                output = await anyio.to_thread.run_sync(partial(func, *args, **kwargs))
+            return _decorator
 
-            response.headers["ETag"] = hash_fn(output)
-            if request.method in ["HEAD", "GET"]:
-                if _does_etag_match(response.headers["ETag"], if_none_match):
-                    response.status_code = 304
-                    return
-
-            if not cache_control.no_store:
-                await storage.save(
-                    key=key, value=output, ttl=cache_control.max_age or ttl
-                )
-
-            return output
-
-        return _decorator
-
-    return _wrapper
+        return _wrapper

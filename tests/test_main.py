@@ -1,14 +1,17 @@
-from ultra_cache.main import get_storage, init_cache
+from fakeredis import FakeAsyncRedis
+from ultra_cache.decorator import UltraCache
 from ultra_cache.storage.inmemory import InMemoryStorage
 import pytest
 
+from ultra_cache.storage.redis import RedisStorage
 
-def test_init_cache():
-    with pytest.raises(ValueError):
-        get_storage()
 
-    created_storage = InMemoryStorage()
-    init_cache(created_storage)
-    s2 = get_storage()
+@pytest.fixture(params=[InMemoryStorage(), RedisStorage(FakeAsyncRedis())])
+def storage(request):
+    return request.param
 
-    assert created_storage == s2
+
+def test_init_cache(storage):
+    cache = UltraCache(storage=storage)
+
+    assert isinstance(cache.storage, type(storage))

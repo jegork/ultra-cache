@@ -1,5 +1,5 @@
 from ultra_cache.build_cache_key import DefaultBuildCacheKey
-from ultra_cache.decorator import cache
+from ultra_cache.decorator import UltraCache
 from ultra_cache.storage.inmemory import InMemoryStorage
 import pytest
 from fastapi import Request, Response
@@ -126,7 +126,8 @@ async def test_decorator_cached(
         fn_with_args, "fn"
     )  # Weird syntax, but did not find any alternative
 
-    cached_fn = cache(storage=storage)(fn_with_args.fn)
+    cache = UltraCache(storage=storage)
+    cached_fn = cache()(fn_with_args.fn)
     result = await cached_fn(
         *fn_with_args.args, **{**fn_with_args.kwargs, **fn_with_args.injected_kwargs}
     )
