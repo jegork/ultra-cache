@@ -15,7 +15,7 @@ def reset_cache():
         loop = asyncio.get_event_loop()
     except:  # noqa: E722
         loop = asyncio.new_event_loop()
-    loop.run_until_complete(utils.storage.clear())
+    loop.run_until_complete(utils.cache.storage.clear())
     yield
     loop.close()
 
