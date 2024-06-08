@@ -8,7 +8,7 @@ from ultra_cache.utils import utc_now
 
 
 @pytest.fixture
-def storage(mocker):
+async def storage(mocker):
     redis_instance = FakeAsyncRedis(decode_responses=True)
     mocker.spy(redis_instance, "set")
     mocker.spy(redis_instance, "get")
