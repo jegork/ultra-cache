@@ -1,5 +1,4 @@
-from ctypes import Union
-from typing import Protocol, Callable
+from typing import Protocol, Callable, Union
 import hashlib
 
 
