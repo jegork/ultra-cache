@@ -1,6 +1,6 @@
 import asyncio
 from functools import partial, wraps
-from typing import Any, Callable, ParamSpec, Union, TypeVar
+from typing import Any, Callable, Union, TypeVar
 from collections.abc import Coroutine
 import inspect
 
