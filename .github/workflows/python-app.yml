@@ -34,7 +34,7 @@ jobs:
       run: |
         poetry install
     - name: Run ruff
-      if: ${{ matrix.python-version }} == '3.12'
+      if: ${{ matrix.python-version == '3.12' }}
       run: |
         poetry run ruff check .
         poetry run ruff format --check .
