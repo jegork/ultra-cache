@@ -1,4 +1,10 @@
-from typing import Self, Union
+from typing import Union
+import sys
+
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class CacheControl:
