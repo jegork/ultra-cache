@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TypeVar, Union
 from ultra_cache.storage.base import BaseStorage
 from redis import asyncio as redis
 
@@ -17,11 +17,11 @@ class RedisStorage(BaseStorage):
     ) -> "RedisStorage":
         return cls(redis=redis.from_url(connection_string), prefix=prefix)
 
-    async def save(self, key: K, value: V, ttl: int | float | None = None) -> None:
+    async def save(self, key: K, value: V, ttl: Union[int, float, None] = None) -> None:
         full_key = f"{self.prefix}:{key}"
         await self.redis.set(full_key, value, ex=ttl)
 
-    async def get(self, key: K) -> V | None:
+    async def get(self, key: K) -> Union[V, None]:
         full_key = f"{self.prefix}:{key}"
         value = await self.redis.get(full_key)
         return value

@@ -1,7 +1,8 @@
 from contextlib import AbstractAsyncContextManager
+from typing import Union
 from ultra_cache.storage.base import BaseStorage
 
-_storage_instance: BaseStorage | None = None
+_storage_instance: Union[BaseStorage, None] = None
 
 
 def init_cache(storage: BaseStorage) -> None:
@@ -17,7 +18,7 @@ def get_storage() -> BaseStorage:
 
 
 class FastCache(AbstractAsyncContextManager):
-    storage: BaseStorage | None = None
+    storage: Union[BaseStorage, None] = None
 
     def __init__(self) -> None:
         pass

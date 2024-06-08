@@ -1,12 +1,14 @@
 from ultra_cache.storage.redis import RedisStorage
 from fakeredis import FakeAsyncRedis
 import pytest
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from freezegun import freeze_time
+
+from ultra_cache.utils import utc_now
 
 
 @pytest.fixture
-def storage(mocker):
+async def storage(mocker):
     redis_instance = FakeAsyncRedis(decode_responses=True)
     mocker.spy(redis_instance, "set")
     mocker.spy(redis_instance, "get")
@@ -43,7 +45,7 @@ async def test_save_and_get_with_ttl_expired(storage: RedisStorage):
     key = "key"
     value = "value"
     ttl = 60
-    save_time = datetime.now(UTC)
+    save_time = utc_now()
     await storage.save(key, value, ttl=ttl)
 
     storage.redis.set.assert_called_once_with(f"ultra-cache:{key}", value, ex=ttl)

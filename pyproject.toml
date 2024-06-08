@@ -12,7 +12,7 @@ readme = "README.md"
 repository = "https://github.com/jegork/ultra-cache"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.9"
 fastapi = "^0.111.0"
 pydantic = "^2.7.1"
 dict-hash = "^1.1.37"
@@ -27,6 +27,7 @@ freezegun = "^1.5.0"
 pytest-mock = "^3.14.0"
 httpx = "^0.27.0"
 fakeredis = "^2.23.2"
+nox = "^2024.4.15"
 
 [tool.poetry.extras]
 redis = ["redis"]

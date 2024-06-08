@@ -1,23 +1,29 @@
-from typing import Self
+from typing import Union
+import sys
+
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class CacheControl:
     REQUEST_ONLY_KEYS = ["max-stale", "min-fresh", "only-if-cached"]
 
     def __init__(self, parts: dict[str, str]) -> None:
-        self.parts: dict[str, str | None] = parts
+        self.parts: dict[str, Union[str, None]] = parts
 
     def set(self, key: str, value: str) -> None:
         self.parts[key] = value
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str) -> Union[str, None]:
         return self.parts.get(key, None)
 
     def setdefault(self, key: str, value: str) -> None:
         self.parts.setdefault(key, value)
 
     @classmethod
-    def from_string(cls, cache_control: str | None) -> Self:
+    def from_string(cls, cache_control: Union[str, None]) -> Self:
         if cache_control is None:
             return cls({})
         return cls(
@@ -28,7 +34,7 @@ class CacheControl:
         )
 
     @property
-    def max_age(self) -> int | None:
+    def max_age(self) -> Union[int, None]:
         value = self.parts.get("max-age", None)
         if value is None:
             return None

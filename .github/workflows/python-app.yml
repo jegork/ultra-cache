@@ -18,19 +18,23 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.9', '3.10', '3.11', '3.12' ]
     steps:
     - uses: actions/checkout@v4
     - name: Install poetry
       run: pipx install poetry
     - uses: actions/setup-python@v5
-      name: Set up Python 3.12
+      name: Set up Python ${{ matrix.python-version }}
       with:
-        python-version: '3.12'
+        python-version: ${{ matrix.python-version }}
         cache: 'poetry'
     - name: Install dependencies
       run: |
         poetry install
     - name: Run ruff
+      if: ${{ matrix.python-version == '3.12' }}
       run: |
         poetry run ruff check .
         poetry run ruff format --check .
