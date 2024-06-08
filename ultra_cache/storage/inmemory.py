@@ -1,6 +1,6 @@
 from ultra_cache.storage.base import BaseStorage
 from datetime import datetime, timedelta, UTC
-from typing import TypeVar
+from typing import TypeVar, Union
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -8,7 +8,7 @@ T = TypeVar("T")
 
 
 class InMemoryStorageItem:
-    def __init__(self, data: T, ttl: float | None) -> None:
+    def __init__(self, data: T, ttl: Union[int, float, None] = None) -> None:
         self._data = data
         self._ttl = ttl
         self._start = datetime.now(UTC)
@@ -24,7 +24,7 @@ class InMemoryStorageItem:
         return (datetime.now(UTC) - self._start) > timedelta(seconds=self._ttl)
 
     @property
-    def value(self) -> T | None:
+    def value(self) -> Union[T, None]:
         if self.expired:
             return None
 
@@ -35,10 +35,10 @@ class InMemoryStorage(BaseStorage):
     def __init__(self) -> None:
         self.storage: dict[K, InMemoryStorageItem[V]] = {}
 
-    async def save(self, key: K, value: V, ttl: int | float | None = None) -> None:
+    async def save(self, key: K, value: V, ttl: Union[int, float, None] = None) -> None:
         self.storage[key] = InMemoryStorageItem(value, ttl)
 
-    async def get(self, key: K) -> V | None:
+    async def get(self, key: K) -> Union[V, None]:
         item = self.storage.get(key, None)
 
         if item is None:

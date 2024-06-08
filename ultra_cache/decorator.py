@@ -22,7 +22,7 @@ S2 = TypeVar("S2")
 
 def _extract_param_of_type(
     sig: inspect.Signature, param_type: type
-) -> None | inspect.Parameter:
+) -> Union[inspect.Parameter, None]:
     for _, param in sig.parameters.items():
         if param.annotation == param_type:
             return param
@@ -37,7 +37,7 @@ def _default_hash_fn(x: Any) -> str:
 
 
 def _extract(
-    param: inspect.Parameter | None, args: tuple[S1, ...], kwargs: dict[str, S2]
+    param: Union[inspect.Parameter, None], args: tuple[S1, ...], kwargs: dict[str, S2]
 ) -> tuple[tuple[S1, ...], dict[str, S2]]:
     if param is None:
         return args, kwargs
@@ -56,7 +56,7 @@ def _extract(
         return (args_copy, kwargs)
 
 
-def _does_etag_match(etag: str, if_none_match: str | None) -> bool:
+def _does_etag_match(etag: str, if_none_match: Union[str, None]) -> bool:
     if if_none_match is not None and (
         if_none_match == "*" or any(etag == x.strip() for x in if_none_match.split(","))
     ):
@@ -65,9 +65,9 @@ def _does_etag_match(etag: str, if_none_match: str | None) -> bool:
 
 
 def cache(
-    ttl: int | float | None = None,
+    ttl: Union[int, float, None] = None,
     build_cache_key: BuildCacheKey = DefaultBuildCacheKey(),
-    storage: BaseStorage | None = None,
+    storage: Union[BaseStorage, None] = None,
     hash_fn: Callable[[Any], str] = _default_hash_fn,
 ):
     def _wrapper(
