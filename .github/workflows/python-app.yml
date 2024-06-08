@@ -61,7 +61,10 @@ jobs:
         python-version: '3.12'
         cache: 'poetry'
     - name: Install dependencies
-      run: poetry install && echo "VERSION=$(poetry version --short)" >> $GITHUB_ENV
+      run: |
+        poetry install
+        poetry self add poetry-dynamic-versioning[plugin]
+        echo "VERSION=$(poetry version --short)" >> $GITHUB_ENV
     - name: Build
       run: poetry build
     - name: Store the distribution packages
