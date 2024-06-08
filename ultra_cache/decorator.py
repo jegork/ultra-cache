@@ -12,6 +12,12 @@ from ultra_cache.cache_control import CacheControl
 from ultra_cache.main import get_storage
 from ultra_cache.storage.base import BaseStorage
 from fastapi import Request, Response
+import sys
+
+if sys.version_info[0] == 3 and sys.version_info[1] >= 11:
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")
